@@ -1,7 +1,10 @@
+
 {
   "expo": {
     "name": "Fitness Tracker",
-    "slug": "fitness-tracker-app",
-    "version": "1.0.0"
+    "slug": "fitness-tracker",
+    "android": {
+      "package": "com.khaledazem.fitnesstracker"
+    }
   }
 }
