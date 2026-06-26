@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
-import * as Notifications from 'expo-notifications'; // 1. للمنبهات
+import * as Notifications from 'expo-notifications';
 
 Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: false, shouldSetBadge: false }) });
 
@@ -14,7 +14,7 @@ const DAYS_ORDER = ["السبت","الأحد","الاثنين","الثلاثاء
 const todayName = () => { const map = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"]; return map[new Date().getDay()]; };
 const DAY_COLORS = { السبت:"#e74c3c", الأحد:"#3498db", الاثنين:"#9b59b6", الثلاثاء:"#95a5a6", الأربعاء:"#27ae60", الخميس:"#e67e22", الجمعة:"#95a5a6" };
 
-// ========== 1. قاعدة بيانات الاكل - تعديل 1 ==========
+// ========== 1. قاعدة بيانات الاكل ==========
 const FOOD_DB = {
   "بيض مسلوق": { cal:78, pro:6, carbs:0.5, fat:5, unit:"حبة" },
   "صدور فراخ": { cal:165, pro:31, carbs:0, fat:3.6, unit:"100جم" },
@@ -49,7 +49,6 @@ const ExerciseModal = ({ex,onSave,onClose}) => {
   </View></TouchableOpacity></Modal>
 };
 
-// ========== 2. مودال تسجيل الوزن - تعديل 2 ==========
 const WeightModal = ({ex,onSave,onClose}) => {
   const [week,setWeek] = useState(""); const [w,setW] = useState("");
   return <Modal visible transparent animationType="slide"><TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}><View style={styles.modal}>
@@ -71,14 +70,12 @@ const HomePage = ({profile,nutrition}) => {
 };
 
 const WorkoutPage = ({workoutPlan,setWorkoutPlan}) => {
-  const [day,setDay] = useState(todayName()); const [done,setDone] = useState({}); const [modal,setModal] = useState(null); const [weightModal,setWeightModal] = useState(null); // تعديل 2
+  const [day,setDay] = useState(todayName()); const [done,setDone] = useState({}); const [modal,setModal] = useState(null); const [weightModal,setWeightModal] = useState(null);
   useEffect(()=>{getLS("done_exercises",{}).then(setDone)},[]); useEffect(()=>{setLS("done_exercises",done)},[done]);
   const plan = workoutPlan[day]; const isRest = plan.exercises.length===0;
   const toggle = id => setDone({...done,[`${day}_${id}`]:!done[`${day}_${id}`]});
   const save = ex => { const exs = modal?.mode==="edit"?plan.exercises.map(e=>e.id===ex.id?ex:e):[...plan.exercises,ex]; const np = {...workoutPlan,[day]:{...plan,exercises:exs}}; setWorkoutPlan(np); setLS("workout_plan",np); setModal(null); };
   const del = id => { const np = {...workoutPlan,[day]:{...plan,exercises:plan.exercises.filter(e=>e.id!==id)}}; setWorkoutPlan(np); setLS("workout_plan",np); };
-
-  // تعديل 2: حفظ الوزن
   const saveWeight = (ex, week, w) => { const updatedEx = {...ex, weights:{...ex.weights,[week]:w}}; const exs = plan.exercises.map(e=>e.id===ex.id?updatedEx:e); const np = {...workoutPlan,[day]:{...plan,exercises:exs}}; setWorkoutPlan(np); setLS("workout_plan",np); setWeightModal(null); };
 
   return <ScrollView style={{padding:16,paddingBottom:100}}>
@@ -90,12 +87,15 @@ const WorkoutPage = ({workoutPlan,setWorkoutPlan}) => {
         <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"center"}}>
           <TouchableOpacity onPress={()=>toggle(ex.id)} style={{flexDirection:"row",gap:10,flex:1}}>
             <View style={[styles.check,{backgroundColor:done[`${day}_${ex.id}`]?"#00d084":"#374151"}]}>{done[`${day}_${ex.id}`]&&<Text style={{color:"#fff"}}>✓</Text>}</View>
-            <View><Text style={{color:done[`${day}_${id}`]?"#6b7280":"#fff",fontWeight:"700"}}>{ex.name}</Text><Text style={{color:"#9ca3af",fontSize:12}}>{ex.sets}×{ex.reps}</Text></View>
+            <View><Text style={{color:done[`${day}_${ex.id}`]?"#6b7280":"#fff",fontWeight:"700"}}>{ex.name}</Text><Text style={{color:"#9ca3af",fontSize:12}}>{ex.sets}×{ex.reps}</Text></View> 
           </TouchableOpacity>
           <TouchableOpacity onPress={()=>setWeightModal(ex)}><Text style={{color:"#60a5fa",fontSize:12,marginRight:8}}>وزن</Text></TouchableOpacity>
           <TouchableOpacity onPress={()=>del(ex.id)}><Text style={{color:"#f87171"}}>حذف</Text></TouchableOpacity>
         </View>
-        {Object.keys(ex.weights).length>0&&<Text style={{color:"#a7f3d0",fontSize:11,marginTop:5}}>اخر وزن: اسبوع {Object.keys(ex.weights).pop()} = {ex.weights[Object.keys(ex.weights).pop()]} كجم</Text>}
+        {Object.keys(ex.weights).length>0&&(() => {
+          const lastWeek = Object.keys(ex.weights).sort((a,b)=>b-a)[0];
+          return <Text style={{color:"#a7f3d0",fontSize:11,marginTop:5}}>اخر وزن: اسبوع {lastWeek} = {ex.weights[lastWeek]} كجم</Text>
+        })()}
       </View>
     )}</View>
     {modal&&<ExerciseModal ex={modal.mode==="edit"?modal:null} onSave={save} onClose={()=>setModal(null)}/>}
@@ -103,7 +103,6 @@ const WorkoutPage = ({workoutPlan,setWorkoutPlan}) => {
   </ScrollView>
 };
 
-// ========== 1. صفحة اضافة اكل - تعديل 1 ==========
 const FoodAddPage = ({nutrition,setNutrition,profile}) => {
   const [search,setSearch] = useState(""); const [qty,setQty] = useState("100"); const [selected,setSelected] = useState(null);
   const todayStr = new Date().toDateString();
@@ -139,7 +138,6 @@ const NutritionPage = ({nutrition,profile}) => {
 
 const SettingsPage = ({profile,setProfile}) => {
   const [p,setP] = useState(profile);
-  // تعديل 3: المنبهات
   const setWaterReminder = async () => {
     await Notifications.requestPermissionsAsync();
     await Notifications.scheduleNotificationAsync({ content:{title:"اشرب ميه يا وحش 💧"}, trigger:{hour:2, repeats:true} });
